@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ProductCodeBox from "./components/productCodeBox";
+import { test } from "./crawler/crawler";
 
 function App() {
   const [productCodes, setProductCodes] = useState<string[]>([]);
@@ -52,7 +53,10 @@ function App() {
             />
           </div>
         </form>
-        <button className="bg-white w-[200px] h-[30px] rounded-sm mt-7">
+        <button
+          onClick={() => test()}
+          className="bg-white w-[200px] h-[30px] rounded-sm mt-7"
+        >
           START
         </button>
       </div>
