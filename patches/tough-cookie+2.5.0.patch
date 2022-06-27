@@ -1,0 +1,28 @@
+diff --git a/node_modules/tough-cookie/lib/memstore.js b/node_modules/tough-cookie/lib/memstore.js
+index d2b915c..500964a 100644
+--- a/node_modules/tough-cookie/lib/memstore.js
++++ b/node_modules/tough-cookie/lib/memstore.js
+@@ -34,11 +34,7 @@ var permuteDomain = require('./permuteDomain').permuteDomain;
+ var pathMatch = require('./pathMatch').pathMatch;
+ var util = require('util');
+ 
+-function MemoryCookieStore() {
+-  Store.call(this);
+-  this.idx = {};
+-}
+-util.inherits(MemoryCookieStore, Store);
++class MemoryCookieStore extends Store {}
+ exports.MemoryCookieStore = MemoryCookieStore;
+ MemoryCookieStore.prototype.idx = null;
+ 
+@@ -52,8 +48,8 @@ MemoryCookieStore.prototype.inspect = function() {
+ 
+ // Use the new custom inspection symbol to add the custom inspect function if
+ // available.
+-if (util.inspect.custom) {
+-  MemoryCookieStore.prototype[util.inspect.custom] = MemoryCookieStore.prototype.inspect;
++if (util.inspect().custom) {
++  MemoryCookieStore.prototype[util.inspect().custom] = MemoryCookieStore.prototype.inspect;
+ }
+ 
+ MemoryCookieStore.prototype.findCookie = function(domain, path, key, cb) {
