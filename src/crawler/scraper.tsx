@@ -1,5 +1,7 @@
 import axios from "axios";
 import { load } from "cheerio";
+import { Buffer } from "buffer";
+
 axios.defaults.withCredentials = true;
 
 async function getHTML(url: string) {
@@ -36,8 +38,8 @@ export function crawlProductInfo(productCodes: string[]) {
         .text()
         .replaceAll("\t", "")
         .replaceAll("\n", "")
-        .replaceAll("제품코드 : ", "")
-        .replaceAll(" ", "");
+        .replaceAll(" ", "")
+        .replaceAll("제품번호:", "");
 
       const href = `https://www.onch3.co.kr/${$bodyList
         .find("li.prd_img")
@@ -142,21 +144,29 @@ export async function login(id: string, pw: string) {
 }
 
 export async function crawlProductDetail(url: string) {
-  await getHTML(url).then((html) => {
+  const result = await getHTML(url).then((html) => {
+    type detailType = {
+      options: object[];
+      images: any[];
+      dlevPrice: string;
+    };
+    const detail: detailType = { options: [{}], images: [], dlevPrice: "" };
+
     const $ = load(html?.data);
-    const $detail_prod = $("div.prod_detail_box").find(
-      "div.detail_page_option"
-    );
+    const $detail_prod = $("div.prod_detail_box");
 
     type optionData = {
-      옵션명: string;
-      최종준수가: string;
-      소비자가: string;
-      판매자가: string;
-      최소수량: string;
+      optionName: string;
+      finalCompliance: string;
+      retailPrice: string;
+      sellerPrice: string;
+      MinimumQuantity: string;
     };
 
-    const options = $detail_prod.find("ul").find("li");
+    const options = $detail_prod
+      .find("div.detail_page_option")
+      .find("ul")
+      .find("li");
 
     const optionsList: optionData[] = [];
 
@@ -165,27 +175,27 @@ export async function crawlProductDetail(url: string) {
 
       const element = $(elem);
 
-      data.옵션명 = element
+      data.optionName = element
         .find("span.detail_page_name")
         .text()
         .replaceAll("\t", "")
         .replaceAll("\n", "");
-      data.최종준수가 = element
+      data.finalCompliance = element
         .find("span.detail_page_price_1")
         .text()
         .replaceAll("\t", "")
         .replaceAll("\n", "");
-      data.소비자가 = element
+      data.retailPrice = element
         .find("span.detail_page_price_2")
         .text()
         .replaceAll("\t", "")
         .replaceAll("\n", "");
-      data.판매자가 = element
+      data.sellerPrice = element
         .find("span.detail_page_price_3")
         .text()
         .replaceAll("\t", "")
         .replaceAll("\n", "");
-      data.최소수량 = element
+      data.MinimumQuantity = element
         .find("span.detail_page_min")
         .text()
         .replaceAll("\t", "")
@@ -194,7 +204,52 @@ export async function crawlProductDetail(url: string) {
       optionsList.push(data);
     });
 
-    console.table(optionsList);
-    return optionsList;
+    detail.options = optionsList;
+
+    const imagesURL: any[] = [];
+    const images: any[] = [];
+
+    const imageDiv = $("div.prod_detail_div")
+      .children("div.prod_detail_imgbox")
+      .find("a")
+      .find("img");
+
+    imageDiv.each((_, elem) => {
+      const element = $(elem);
+
+      imagesURL.push(element.attr("src"));
+    });
+
+    for (const i of imagesURL) {
+      const queryData = i.replaceAll(
+        "https://image.onch3.co.kr/img_data",
+        "/img"
+      );
+
+      axios
+        .get(queryData, { withCredentials: false, responseType: "arraybuffer" })
+        .then((res) => {
+          if (res) {
+            const LAST_INDEX = queryData.split("/").length - 1;
+            const fileName = queryData.split("/")[LAST_INDEX];
+
+            const file = res.data;
+            images.push({ fileName, file });
+          }
+        })
+        .then(() => {
+          detail.images = images;
+        });
+    }
+
+    const dlevPrice = $("div.prod_detail_content");
+    detail.dlevPrice = dlevPrice
+      .text()
+      .replaceAll("\n", "")
+      .replaceAll("\t", "");
+
+    return detail;
   });
+
+  return result;
 }

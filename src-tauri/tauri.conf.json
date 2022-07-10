@@ -22,8 +22,11 @@
         "removeDir": true,
         "removeFile": true,
         "renameFile": true,
-        "scope": ["$APP/*", "$APP"],
+        "scope": ["**"],
         "writeFile": true
+      },
+      "notification": {
+        "all": true
       }
     },
     "bundle": {

@@ -33,6 +33,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/img": {
+        target: "https://image.onch3.co.kr/img_data",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/img/, ""),
+      },
     },
   },
 });
