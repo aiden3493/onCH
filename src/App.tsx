@@ -43,12 +43,10 @@ function App() {
     num: string | undefined;
   };
 
-  let prdInfo: prd[] = [];
-
   const productCodeChanges = (e: any) => {
     e.preventDefault();
     const value = `${e.target.value}`;
-    setCurrentCodesInput(() => value);
+    setCurrentCodesInput(value);
 
     if (value === "") {
       setProductCodes([]);
@@ -56,7 +54,7 @@ function App() {
     }
     const formatedValue = value.split(",");
 
-    setProductCodes((prdCodes) => [...prdCodes, ...formatedValue]);
+    setProductCodes([...formatedValue]);
   };
 
   useEffect(() => {
@@ -92,7 +90,7 @@ function App() {
     if (productCodes.length === 0) return;
 
     const result = crawlProductInfo(productCodes);
-    prdInfo = result;
+    const prdInfo: prd[] = result;
 
     const selectedDir = await open({
       directory: true,
