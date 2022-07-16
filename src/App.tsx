@@ -1,10 +1,27 @@
 import { useEffect, useState } from "react";
 import ProductCodeBox from "./components/productCodeBox";
 import { open } from "@tauri-apps/api/dialog";
+import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
+import { relaunch } from "@tauri-apps/api/process";
 import { crawlProductInfo, crawlProductDetail, login } from "./crawler/scraper";
 import { createDir, writeBinaryFile, writeTextFile } from "@tauri-apps/api/fs";
 
 function App() {
+  useEffect(() => {
+    async function update() {
+      try {
+        const { shouldUpdate, manifest } = await checkUpdate();
+        if (shouldUpdate) {
+          await installUpdate();
+          await relaunch();
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    update();
+  });
   useEffect(() => {
     document.cookie =
       "PHPSSID" +
@@ -26,12 +43,12 @@ function App() {
     num: string | undefined;
   };
 
-  const [prdInfo, setPrdInfo] = useState<prd[]>([]);
+  let prdInfo: prd[] = [];
 
   const productCodeChanges = (e: any) => {
     e.preventDefault();
     const value = `${e.target.value}`;
-    setCurrentCodesInput(value);
+    setCurrentCodesInput(() => value);
 
     if (value === "") {
       setProductCodes([]);
@@ -39,7 +56,7 @@ function App() {
     }
     const formatedValue = value.split(",");
 
-    setProductCodes([...productCodes, ...formatedValue]);
+    setProductCodes((prdCodes) => [...prdCodes, ...formatedValue]);
   };
 
   useEffect(() => {
@@ -48,13 +65,13 @@ function App() {
         const pushData = currentCodesInput
           .split(",")
           .filter((element2: any) => element2 !== element);
-        await setCurrentCodesInput(pushData.join(","));
+        await setCurrentCodesInput(() => pushData.join(","));
       }
     });
   }, [productCodes]);
 
-  let [id, setId] = useState("");
-  let [pw, setPw] = useState("");
+  let [id, setId] = useState(() => "");
+  let [pw, setPw] = useState(() => "");
   const [idErr, setIdErr] = useState("");
   const [pwErr, setPwErr] = useState("");
 
@@ -64,16 +81,18 @@ function App() {
     setPwErr("");
 
     if (id === "" && pw === "") {
-      setIdErr("아이디 항목은 필수 입력입니다.");
-      setPwErr("비밀번호 항목은 필수 입력입니다.");
+      setIdErr(() => "아이디 항목은 필수 입력입니다.");
+      return setPwErr(() => "비밀번호 항목은 필수 입력입니다.");
     } else if (id === "") {
-      setIdErr("아이디 항목은 필수 입력입니다.");
+      return setIdErr(() => "아이디 항목은 필수 입력입니다.");
     } else if (pw === "") {
-      setPwErr("비밀번호 항목은 필수 입력입니다.");
+      return setPwErr(() => "비밀번호 항목은 필수 입력입니다.");
     }
 
-    const result = await crawlProductInfo(productCodes);
-    setPrdInfo(result);
+    if (productCodes.length === 0) return;
+
+    const result = crawlProductInfo(productCodes);
+    prdInfo = result;
 
     const selectedDir = await open({
       directory: true,
@@ -82,25 +101,21 @@ function App() {
 
     if (selectedDir) {
       await login(id, pw)
-        .then((err) => {
-          if (err !== true) {
-            if (err === "blankBoth") {
-              setIdErr("아이디 항목은 필수 입력입니다.");
-              return setPwErr("비밀번호 항목은 필수 입력입니다.");
-            } else if (err === "blankId") {
-              return setIdErr("아이디 항목은 필수 입력입니다.");
-            } else if (err === "blankPw") {
-              return setPwErr("비밀번호 항목은 필수 입력입니다.");
-            }
+        .then(async (err) => {
+          if (err == false) {
             if (err === "idInvalid") {
-              return setIdErr("아이디가 존재하지 않습니다.");
+              setIdErr("아이디가 존재하지 않습니다.");
             } else if (err === "pwInvalid") {
-              return setPwErr("비밀번호가 잘못되었습니다.");
+              setPwErr("비밀번호가 잘못되었습니다.");
             }
           }
+        })
+        .then(() => {
           prdInfo.map(async (prd) => {
             const detail = await crawlProductDetail(prd.href);
-            await createDir(`${selectedDir}/${prd.code}`, {}).then(async () => {
+            await createDir(`${selectedDir}/${prd.code}`, {
+              recursive: true,
+            }).then(async () => {
               await createDir(`${selectedDir}/${prd.code}/images`);
               detail.images.map(async (i) => {
                 await writeBinaryFile(
@@ -124,10 +139,14 @@ function App() {
                               display: flex;
                               justify-content: center;
                               align-items: center;
+                              flex-direction: column
                             }
                             th,
                             td {
                               padding: 10px;
+                            }
+                            h1 {
+                              font-size: 13px
                             }
                           </style>
                         </head>

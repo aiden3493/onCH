@@ -79,7 +79,7 @@ export async function login(id: string, pw: string) {
   let popup: string = "N";
 
   //get PHPSSID
-  const getPHPSSID = await axios.get("/main");
+  await axios.get("/main");
 
   //get SSID, goto, popup
   const loginResult = await axios
@@ -88,17 +88,6 @@ export async function login(id: string, pw: string) {
       const $ = load(res?.data);
 
       const $body = $("body");
-
-      const blankMsg = $body.find("p");
-      if (blankMsg.length === 3) {
-        return "blankBoth";
-      } else if (blankMsg.length === 2) {
-        if (blankMsg.first().text() === "아이디 항목은 필수 입력입니다.") {
-          return "blankId";
-        } else {
-          return "blankPw";
-        }
-      }
 
       const feedbackMsg = $body.find("div");
 
@@ -140,7 +129,7 @@ export async function login(id: string, pw: string) {
   SSIDform.append("goto", goto);
   SSIDform.append("popup", popup);
 
-  const enablePHPSSID = await axios.post("/auth", SSIDform);
+  await axios.post("/auth", SSIDform);
 }
 
 export async function crawlProductDetail(url: string) {
